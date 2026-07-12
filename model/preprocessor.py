@@ -11,6 +11,8 @@ class DataPreprocessor:
         self.team_encoder = LabelEncoder()
         self.venue_encoder = LabelEncoder()
         self.city_encoder = LabelEncoder()
+        self.team_stats_cache = {}
+        self.bowl_stats_cache = {}
         self._fitted = False
 
     def load_data(self):
@@ -61,6 +63,23 @@ class DataPreprocessor:
             self.team_encoder.fit(all_teams)
             self.venue_encoder.fit(all_venues)
             self.city_encoder.fit(all_cities)
+            
+            # Cache statistics for O(1) inference
+            self.team_stats_cache = {}
+            for _, row in df.drop_duplicates('batting_team').iterrows():
+                self.team_stats_cache[row['batting_team']] = {
+                    'avg_runs': row['avg_runs'],
+                    'std_runs': row['std_runs'],
+                    'max_runs': row['max_runs'],
+                    'avg_wickets': row['avg_wickets']
+                }
+            
+            self.bowl_stats_cache = {}
+            for _, row in df.drop_duplicates('bowling_team').iterrows():
+                self.bowl_stats_cache[row['bowling_team']] = {
+                    'opp_avg_runs': row['opp_avg_runs']
+                }
+
             self._fitted = True
 
         df['batting_team_enc'] = self.team_encoder.transform(df['batting_team'])
@@ -82,60 +101,50 @@ class DataPreprocessor:
 
     def get_team_stats(self, batting_team: str, bowling_team: str, venue: str, year: int = 2024):
         if not self._fitted:
-            self.prepare_data()
+            raise ValueError("Preprocessor is not fitted. Load encoders first.")
 
-        try:
-            bt_enc = self.team_encoder.transform([batting_team])[0]
-        except:
-            bt_enc = 0
+        # Fail explicitly on unknown inputs instead of masking errors
+        if batting_team not in self.team_encoder.classes_:
+            raise ValueError(f"Unknown batting team: {batting_team}")
+        if bowling_team not in self.team_encoder.classes_:
+            raise ValueError(f"Unknown bowling team: {bowling_team}")
+        if venue not in self.venue_encoder.classes_:
+            raise ValueError(f"Unknown venue: {venue}")
 
-        try:
-            bowl_enc = self.team_encoder.transform([bowling_team])[0]
-        except:
-            bowl_enc = 0
+        bt_enc = self.team_encoder.transform([batting_team])[0]
+        bowl_enc = self.team_encoder.transform([bowling_team])[0]
+        v_enc = self.venue_encoder.transform([venue])[0]
 
-        try:
-            v_enc = self.venue_encoder.transform([venue])[0]
-        except:
-            v_enc = 0
-
-        df = self.load_data()
-        match_level = self.engineer_features(df)
-
-        team_row = match_level[match_level['batting_team'] == batting_team]
-        if len(team_row) > 0:
-            avg_runs = team_row['avg_runs'].iloc[0]
-            std_runs = team_row['std_runs'].iloc[0]
-            max_runs = team_row['max_runs'].iloc[0]
-            avg_wickets = team_row['avg_wickets'].iloc[0]
-        else:
-            avg_runs, std_runs, max_runs, avg_wickets = 150, 30, 220, 5
-
-        bowl_row = match_level[match_level['bowling_team'] == bowling_team]
-        if len(bowl_row) > 0:
-            opp_avg_runs = bowl_row['opp_avg_runs'].iloc[0]
-        else:
-            opp_avg_runs = 150
+        # O(1) dictionary lookup instead of O(N) DataFrame processing
+        b_stats = self.team_stats_cache.get(batting_team, {
+            'avg_runs': 150, 'std_runs': 30, 'max_runs': 220, 'avg_wickets': 5
+        })
+        
+        bw_stats = self.bowl_stats_cache.get(bowling_team, {
+            'opp_avg_runs': 150
+        })
 
         return {
             'batting_team_enc': bt_enc,
             'bowling_team_enc': bowl_enc,
             'venue_enc': v_enc,
-            'city_enc': v_enc,
+            'city_enc': v_enc,  # using venue for city as fallback (as per original code)
             'overs': 20,
             'year': year,
-            'avg_runs': avg_runs,
-            'std_runs': std_runs,
-            'max_runs': max_runs,
-            'avg_wickets': avg_wickets,
-            'opp_avg_runs': opp_avg_runs
+            'avg_runs': b_stats['avg_runs'],
+            'std_runs': b_stats['std_runs'],
+            'max_runs': b_stats['max_runs'],
+            'avg_wickets': b_stats['avg_wickets'],
+            'opp_avg_runs': bw_stats['opp_avg_runs']
         }
 
     def save_encoders(self, path: Path):
         joblib.dump({
             'team_encoder': self.team_encoder,
             'venue_encoder': self.venue_encoder,
-            'city_encoder': self.city_encoder
+            'city_encoder': self.city_encoder,
+            'team_stats_cache': self.team_stats_cache,
+            'bowl_stats_cache': self.bowl_stats_cache
         }, path)
 
     def load_encoders(self, path: Path):
@@ -143,4 +152,6 @@ class DataPreprocessor:
         self.team_encoder = data['team_encoder']
         self.venue_encoder = data['venue_encoder']
         self.city_encoder = data['city_encoder']
+        self.team_stats_cache = data.get('team_stats_cache', {})
+        self.bowl_stats_cache = data.get('bowl_stats_cache', {})
         self._fitted = True
