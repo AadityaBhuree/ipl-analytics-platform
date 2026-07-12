@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.gemini/
+IPL.csv
+memory.md
