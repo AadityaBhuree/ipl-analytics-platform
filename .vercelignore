@@ -1,0 +1,8 @@
+IPL.csv
+frontend.py
+tests/
+memory.md
+PROJECT_ASSESSMENT.md
+.dockerignore
+Dockerfile
+.env
