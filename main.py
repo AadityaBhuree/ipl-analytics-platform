@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Security
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security.api_key import APIKeyHeader
 from pydantic import BaseModel, Field
 from typing import Optional, List
@@ -20,6 +21,15 @@ app = FastAPI(
     title="IPL Score Prediction API",
     description="Machine Learning backend for predicting IPL match scores",
     version="1.0.0"
+)
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace "*" with specific domains
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # API Key Security for /train endpoint
