@@ -4,6 +4,10 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 import uvicorn
 import logging
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from model.trainer import ModelTrainer
 from model.predictor import ScorePredictor
@@ -19,7 +23,7 @@ app = FastAPI(
 )
 
 # API Key Security for /train endpoint
-API_KEY = "ipl_admin_secret_123"
+API_KEY = os.getenv("API_KEY", "default_secret_key")
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 def get_api_key(api_key: str = Security(api_key_header)):
