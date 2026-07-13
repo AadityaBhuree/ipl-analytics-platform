@@ -144,6 +144,7 @@ class DataPreprocessor:
         }
 
     def save_encoders(self, path: Path):
+        path.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump({
             'team_encoder': self.team_encoder,
             'venue_encoder': self.venue_encoder,

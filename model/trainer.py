@@ -50,6 +50,7 @@ class ModelTrainer:
         return metrics
 
     def save_model(self):
+        MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump(self.model, MODEL_PATH)
 
     def load_model(self):
