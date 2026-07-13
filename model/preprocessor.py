@@ -13,6 +13,7 @@ class DataPreprocessor:
         self.city_encoder = LabelEncoder()
         self.team_stats_cache = {}
         self.bowl_stats_cache = {}
+        self.venue_city_map = {}
         self._fitted = False
 
     def load_data(self):
@@ -65,6 +66,7 @@ class DataPreprocessor:
             self.city_encoder.fit(all_cities)
             
             # Cache statistics for O(1) inference
+            self.venue_city_map = dict(zip(df['venue'], df['city']))
             self.team_stats_cache = {}
             for _, row in df.drop_duplicates('batting_team').iterrows():
                 self.team_stats_cache[row['batting_team']] = {
@@ -114,6 +116,9 @@ class DataPreprocessor:
         bt_enc = self.team_encoder.transform([batting_team])[0]
         bowl_enc = self.team_encoder.transform([bowling_team])[0]
         v_enc = self.venue_encoder.transform([venue])[0]
+        
+        city = self.venue_city_map.get(venue, self.city_encoder.classes_[0])
+        c_enc = self.city_encoder.transform([city])[0]
 
         # O(1) dictionary lookup instead of O(N) DataFrame processing
         b_stats = self.team_stats_cache.get(batting_team, {
@@ -128,7 +133,7 @@ class DataPreprocessor:
             'batting_team_enc': bt_enc,
             'bowling_team_enc': bowl_enc,
             'venue_enc': v_enc,
-            'city_enc': v_enc,  # using venue for city as fallback (as per original code)
+            'city_enc': c_enc,
             'overs': 20,
             'year': year,
             'avg_runs': b_stats['avg_runs'],
@@ -144,7 +149,8 @@ class DataPreprocessor:
             'venue_encoder': self.venue_encoder,
             'city_encoder': self.city_encoder,
             'team_stats_cache': self.team_stats_cache,
-            'bowl_stats_cache': self.bowl_stats_cache
+            'bowl_stats_cache': self.bowl_stats_cache,
+            'venue_city_map': self.venue_city_map
         }, path)
 
     def load_encoders(self, path: Path):
@@ -154,4 +160,5 @@ class DataPreprocessor:
         self.city_encoder = data['city_encoder']
         self.team_stats_cache = data.get('team_stats_cache', {})
         self.bowl_stats_cache = data.get('bowl_stats_cache', {})
+        self.venue_city_map = data.get('venue_city_map', {})
         self._fitted = True
