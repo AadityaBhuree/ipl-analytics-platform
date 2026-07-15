@@ -16,18 +16,6 @@ CARD_BG = "#151C25"
 INPUT_BG = "#1C2632"
 BORDER_COLOR = "#2A3441"
 
-TEAM_COLORS = {
-    "Mumbai Indians": "#004BA0",
-    "Chennai Super Kings": "#FDB913",
-    "Royal Challengers Bangalore": "#D92B2B",
-    "Kolkata Knight Riders": "#3A225D",
-    "Delhi Capitals": "#0188DC",
-    "Punjab Kings": "#ED1E24",
-    "Sunrisers Hyderabad": "#E52D27",
-    "Rajasthan Royals": "#FF4F89",
-    "Lucknow Super Giants": "#0C1929",
-    "Gujarat Titans": "#0C2340",
-}
 
 
 class IPLPredictorApp(ctk.CTk):
@@ -52,7 +40,7 @@ class IPLPredictorApp(ctk.CTk):
                 data = response.json()
                 self.teams = data.get("teams", [])
                 self.venues = data.get("venues", [])
-        except:
+        except requests.exceptions.RequestException:
             self.teams = ["Mumbai Indians", "Chennai Super Kings", "Royal Challengers Bangalore",
                          "Kolkata Knight Riders", "Delhi Capitals", "Punjab Kings",
                          "Sunrisers Hyderabad", "Rajasthan Royals", "Lucknow Super Giants", "Gujarat Titans"]

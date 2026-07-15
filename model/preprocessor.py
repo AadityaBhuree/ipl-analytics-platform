@@ -14,6 +14,7 @@ class DataPreprocessor:
         self.team_stats_cache = {}
         self.bowl_stats_cache = {}
         self.venue_city_map = {}
+        self.global_stats = {}
         self._fitted = False
 
     def load_data(self):
@@ -57,6 +58,14 @@ class DataPreprocessor:
         df = self.engineer_features(df)
 
         if not self._fitted:
+            self.global_stats = {
+                'avg_runs': float(df['avg_runs'].mean()) if not df['avg_runs'].isna().all() else 150.0,
+                'std_runs': float(df['std_runs'].mean()) if not df['std_runs'].isna().all() else 30.0,
+                'max_runs': float(df['max_runs'].mean()) if not df['max_runs'].isna().all() else 220.0,
+                'avg_wickets': float(df['avg_wickets'].mean()) if not df['avg_wickets'].isna().all() else 5.0,
+                'opp_avg_runs': float(df['opp_avg_runs'].mean()) if not df['opp_avg_runs'].isna().all() else 150.0
+            }
+
             all_teams = pd.concat([df['batting_team'], df['bowling_team']]).unique()
             all_venues = df['venue'].unique()
             all_cities = df['city'].unique()
@@ -122,11 +131,14 @@ class DataPreprocessor:
 
         # O(1) dictionary lookup instead of O(N) DataFrame processing
         b_stats = self.team_stats_cache.get(batting_team, {
-            'avg_runs': 150, 'std_runs': 30, 'max_runs': 220, 'avg_wickets': 5
+            'avg_runs': self.global_stats.get('avg_runs', 150.0),
+            'std_runs': self.global_stats.get('std_runs', 30.0),
+            'max_runs': self.global_stats.get('max_runs', 220.0),
+            'avg_wickets': self.global_stats.get('avg_wickets', 5.0)
         })
         
         bw_stats = self.bowl_stats_cache.get(bowling_team, {
-            'opp_avg_runs': 150
+            'opp_avg_runs': self.global_stats.get('opp_avg_runs', 150.0)
         })
 
         return {
@@ -151,7 +163,8 @@ class DataPreprocessor:
             'city_encoder': self.city_encoder,
             'team_stats_cache': self.team_stats_cache,
             'bowl_stats_cache': self.bowl_stats_cache,
-            'venue_city_map': self.venue_city_map
+            'venue_city_map': self.venue_city_map,
+            'global_stats': self.global_stats
         }, path)
 
     def load_encoders(self, path: Path):
@@ -162,4 +175,5 @@ class DataPreprocessor:
         self.team_stats_cache = data.get('team_stats_cache', {})
         self.bowl_stats_cache = data.get('bowl_stats_cache', {})
         self.venue_city_map = data.get('venue_city_map', {})
+        self.global_stats = data.get('global_stats', {})
         self._fitted = True
