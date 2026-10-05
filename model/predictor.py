@@ -31,7 +31,8 @@ class ScorePredictor:
             'overs', 'year', 'avg_runs', 'std_runs', 'max_runs', 'avg_wickets', 'opp_avg_runs'
         ]
 
-        X = np.array([[features[col] for col in feature_names]])
+        import pandas as pd
+        X = pd.DataFrame([[features[col] for col in feature_names]], columns=feature_names)
 
         prediction = self.model.predict(X)[0]
 
