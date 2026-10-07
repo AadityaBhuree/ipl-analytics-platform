@@ -5,3 +5,4 @@ __pycache__/
 .gemini/
 IPL.csv
 memory.md
+.venv/
