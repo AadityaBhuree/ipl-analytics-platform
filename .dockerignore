@@ -6,6 +6,10 @@ __pycache__/
 *.pyc
 *.pyo
 tests/
-models/
 memory.md
 PROJECT_ASSESSMENT.md
+IPL.csv
+.venv/
+venv/
+env/
+.pytest_cache/
